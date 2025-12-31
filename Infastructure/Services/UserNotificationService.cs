@@ -98,7 +98,7 @@ public class UserNotificationService(ApplicationDbContext context, IMapper mappe
         _cache.Remove("UserNotification_test");
         _cache.Remove($"UserNotification_{userNotifDto.Id}");
         await context.SaveChangesAsync();
-        var result = mapper.Map<NotifTypeDto>(check);
+        var result = mapper.Map<UserNotifDto>(check);
         return new Response<UserNotifDto>(HttpStatusCode.OK, "User Notification updated successfully!", result);
         /*}*/
         /*catch (Exception ex)
@@ -109,11 +109,54 @@ public class UserNotificationService(ApplicationDbContext context, IMapper mappe
 
     public async Task<Response<string>> DeleteUserNotifAsync(int id)
     {
-        throw new NotImplementedException();
+        /*try
+   {*/
+        var userNotification = await context.UserNotifications.FindAsync(id);
+        if (userNotification == null)
+            return new Response<string>(HttpStatusCode.NotFound, "User Notifications not found");
+        _cache.Remove("UserNotification_test");
+        context.UserNotifications.Remove(userNotification);
+        await context.SaveChangesAsync();
+        return new Response<string>(HttpStatusCode.OK, "User Notifications deleted successfully!");
+
+        /*catch (Exception ex)
+            {
+                return new Response<string>(HttpStatusCode.BadRequest, $"Error: {ex.Message}");
+            }*/
     }
 
     public async Task<Response<UserNotifDto>> GetUserNotifByIdAsync(int id)
     {
-        throw new NotImplementedException();
+        /*try
+       {*/
+        string cacheKey = $"NotificationType_{id}";
+        if (!_cache.TryGetValue(cacheKey, out UserNotifDto cacheduserNotification)) 
+        {
+            var userNotification = await context.NotificationTypes.ToListAsync();
+            if (userNotification == null || userNotification.Count == 0) 
+                return new Response<UserNotifDto>(HttpStatusCode.NotFound, "User Notifications not found");
+            var userNotif = userNotification.FirstOrDefault(n => n.Id == id); 
+            if (userNotif == null) return new Response<UserNotifDto>(HttpStatusCode.NotFound, "User Notifications not found"); 
+            cacheduserNotification = mapper.Map<UserNotifDto>(userNotif); 
+            _cache.Set(cacheKey, cacheduserNotification); 
+        } 
+        else 
+        { 
+            var currentCount = await context.NotificationTypes.CountAsync(); 
+            var cachedCount = context.NotificationTypes.Local.Count; 
+            if (currentCount != cachedCount)
+            {
+                _cache.Remove(cacheKey);
+                var _userNotification = await context.UserNotifications.FirstOrDefaultAsync(n => n.Id == id); 
+                if (_userNotification == null) 
+                    return new Response<UserNotifDto>(HttpStatusCode.NotFound, "User Notifications not found"); 
+                cacheduserNotification = mapper.Map<UserNotifDto>(_userNotification); 
+                _cache.Set(cacheKey, cacheduserNotification);
+            } 
+        } return new Response<UserNotifDto>(HttpStatusCode.OK, "User Notifications retrieved successfully!", cacheduserNotification);
+        /*catch (Exception ex)
+        {
+            return new Response<TodoItemDto>(HttpStatusCode.BadRequest, $"Error: {ex.Message}");
+        }*/
     }
 }

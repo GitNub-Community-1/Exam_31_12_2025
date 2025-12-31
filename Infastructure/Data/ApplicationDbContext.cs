@@ -8,6 +8,7 @@ namespace Infastructure.Data;
 
 public class ApplicationDbContext : DbContext
 {
+    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
     public DbSet<UserNotification> UserNotifications { get; set; }
     public DbSet<NotificationType>  NotificationTypes { get; set; }
     public DbSet<ReportLog> ReportLogs { get; set; }

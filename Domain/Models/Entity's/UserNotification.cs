@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Domain.Models.Entity_s;
 
@@ -11,5 +12,7 @@ public class UserNotification : BaseEntity
     public bool Expired { get; set; }
     
     public int NotificationId { get; set; }
+    
+    [ForeignKey(nameof(NotificationId))] 
     public NotificationType NotificationType { get; set; }
 }
