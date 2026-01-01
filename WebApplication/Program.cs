@@ -6,6 +6,7 @@ using Infastructure.Services.Interfaces;
 using Infastructure.Workers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
+using Quartz;
 using WebAPIWithJWTAndIdentity.MiddleWare;
 
 var builder = Microsoft.AspNetCore.Builder.WebApplication.CreateBuilder(args);
@@ -24,6 +25,35 @@ builder.Services.AddHostedService<AutoExpiredAndAddedToReportLog>();
 
 
 builder.Services.AddAutoMapper(typeof(MapperProfile));
+
+
+builder.Services.AddQuartz(q =>
+{
+    q.UseMicrosoftDependencyInjectionJobFactory();
+    
+    var jobKey = new JobKey("NotificationExpirationJob");
+    q.AddJob<NotificationExpirationJob>(opts => opts.WithIdentity(jobKey));
+    
+    q.AddTrigger(opts => opts
+        .ForJob(jobKey)
+        .WithIdentity("NotificationExpirationTrigger")
+        .WithCronSchedule("0 * * * * ?")); 
+});
+
+builder.Services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
+
+
+// Настройка CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowLocalhost", builder =>
+    {
+        builder.WithOrigins("http://localhost:3000", "http://localhost:5000", "https://localhost:5001")
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials();
+    });
+});
 
 
 builder.Services.AddSwaggerGen(c =>
@@ -52,6 +82,9 @@ if (!builder.Environment.IsEnvironment("EfMigration"))
 
 
 app.UseMiddleware<CustomLoggingMiddleware>();
+
+// Использование CORS
+app.UseCors("AllowLocalhost");
 
 if (app.Environment.IsDevelopment())
 {
